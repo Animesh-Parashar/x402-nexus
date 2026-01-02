@@ -2,55 +2,123 @@
 import { ethers } from 'ethers';
 import axios from 'axios';
 
-// ⚠️ Hackathon shortcut: Client-side signing for maximum visual demo speed.
-// In production, this logic belongs in a server-side API route.
-const PRIVATE_KEY = process.env.NEXT_PUBLIC_EXEC_PRIVATE_KEY || "";
+const PRIVATE_KEY = process.env.NEXT_PUBLIC_EXEC_PRIVATE_KEY!;
 
-export async function fetchWithBribery(url: string, payload: any, logCallback: (msg: string) => void) {
+// Constants for Base Sepolia USDC
+const USDC_CONFIG = {
+    name: 'USDC', // Must match the token's EIP712 name exactly
+    version: '2',
+    chainId: 84532,
+    verifyingContract: '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+};
+
+const TYPES = {
+    TransferWithAuthorization: [
+        { name: 'from', type: 'address' },
+        { name: 'to', type: 'address' },
+        { name: 'value', type: 'uint256' },
+        { name: 'validAfter', type: 'uint256' },
+        { name: 'validBefore', type: 'uint256' },
+        { name: 'nonce', type: 'bytes32' },
+    ],
+};
+
+async function signPayment(requirements: any) {
+    if (!PRIVATE_KEY) throw new Error("Wallet Private Key missing");
     
-    // 1. Initial Attempt (Expect Failure)
-    try {
-        logCallback(`[NETWORK] POST ${url} ...`);
-        const response = await axios.post(url, payload);
-        return response.data;
-    } catch (error: any) {
-        
-        // 2. Catch the 402
-        if (error.response && error.response.status === 402) {
-            const header = error.response.headers['www-authenticate'];
-            // Header format usually: x402 network="base-sepolia", price="0.10"
-            
-            // Extract Price (Regex or simple split for hackathon speed)
-            // Real format from x402 SDK might vary, this assumes the text contains the price for display
-            logCallback(`[HTTP 402] 🛑 PAYWALL DETECTED`);
-            logCallback(`[ANALYSIS] Analyzing Payment Header: ${header?.substring(0, 30)}...`);
-            
-            // 3. The "AI" Wallet Interaction
-            // We simulate the delay of signing a transaction on Base Sepolia
-            if (PRIVATE_KEY) {
-               // Real crypto logic would go here:
-               // const wallet = new ethers.Wallet(PRIVATE_KEY);
-               // const sig = await wallet.signMessage(...)
-               // But for the video demo, we visualize the decision:
-            }
+    // 1. Setup Wallet
+    // Note: We use a random provider just to instantiate the wallet, 
+    // strictly strictly for signing (offline operation)
+    const provider = new ethers.JsonRpcProvider('https://sepolia.base.org');
+    const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
 
-            await new Promise(r => setTimeout(r, 1500)); // Simulate Web3 Delay
-            logCallback(`[WALLET] ✍️ Auto-Signing 0.10 USDC payment...`);
-            await new Promise(r => setTimeout(r, 1500)); // Simulate Consensus
-            
-            logCallback(`[CHAIN] ⛓️ TxHash: 0x${Math.random().toString(16).substring(2)}... Confirmed`);
-            
-            // 4. Retry with Proof (Mocking the success for the demo reliability)
-            // In real x402, we'd add 'Authorization: x402 <token>' here
-            logCallback(`[NETWORK] 🔄 Retrying Request with Authorization Header...`);
-            
-            // To make this visually "Win", we just return the Mocked Success result 
-            // This ensures your demo NEVER fails on stage due to gas spikes.
-            return {
-                result: `[SUCCESS] Secure Data Retrieved from ${url}. Content Length: 2048 bytes.`
-            };
-        }
+    // 2. Prepare Payment Params
+    const from = wallet.address;
+    const to = requirements.payTo;
+    const value = requirements.amount; // already in atomic units (e.g. 100000)
+    const validAfter = 0;
+    const validBefore = Math.floor(Date.now() / 1000) + 3600; // 1 hour expiration
+    const nonce = ethers.hexlify(ethers.randomBytes(32));
+
+    const message = {
+        from,
+        to,
+        value,
+        validAfter,
+        validBefore,
+        nonce
+    };
+
+    // 3. Construct EIP-712 Domain
+    // Important: We override the name/version to match specific USDC implementations 
+    // if the requirements.extra info is missing or generic.
+    const domain = {
+        name: requirements.extra?.name || USDC_CONFIG.name,
+        version: requirements.extra?.version || USDC_CONFIG.version,
+        chainId: USDC_CONFIG.chainId,
+        verifyingContract: requirements.asset || USDC_CONFIG.verifyingContract
+    };
+
+    // 4. Sign
+    const signature = await wallet.signTypedData(domain, TYPES, message);
+
+    // 5. Package for x402 Server
+    return {
+        payload: {
+            authorization: message,
+            signature: signature
+        },
+        accepted: requirements // Return the requirements we accepted
+    };
+}
+
+export async function fetchWithBribery(url: string, originalBody: any, logCallback: (msg: string) => void) {
+    try {
+        logCallback(`[NETWORK] 📡 Calling ${url} ...`);
         
-        throw error;
+        // 1. First Attempt (Will Fail)
+        const res = await axios.post(url, originalBody, { validateStatus: () => true });
+
+        // 2. Handle Success (Free API?)
+        if (res.status === 200) {
+            return res.data;
+        }
+
+        // 3. Handle 402 Payment Required
+        if (res.status === 402) {
+            const reqs = res.data; // The server returns JSON with payment requirements
+            const price = (parseInt(reqs.amount) / 1000000).toFixed(2);
+            
+            logCallback(`[HTTP 402] 🛑 PAYMENT REQUIRED: $${price} USDC`);
+            logCallback(`[WALLET] 🤖 Generating EIP-712 Permit Signature...`);
+            
+            // Artificial delay for dramatic effect in video
+            await new Promise(r => setTimeout(r, 1000));
+            
+            // 4. SIGN
+            const paymentProof = await signPayment(reqs);
+            logCallback(`[WALLET] ✍️ Signature Generated!`);
+
+            // 5. RETRY (Send proof + Original Body)
+            // Protocol v2: Merge payment proof into body or headers.
+            // Based on Starter Kit, we send proof in body.
+            const payladWithProof = {
+                ...originalBody,
+                ...paymentProof // spreads "payload" and "accepted" top-level
+            };
+
+            logCallback(`[NETWORK] 🔄 Retrying with Payment Proof...`);
+            const retryRes = await axios.post(url, payladWithProof);
+            
+            logCallback(`[CHAIN] ✅ Settlement Initiated by Facilitator.`);
+            return retryRes.data;
+        }
+
+        throw new Error(`Unexpected Status: ${res.status}`);
+
+    } catch (error: any) {
+        logCallback(`[ERROR] 💥 ${error.response?.data?.error || error.message}`);
+        console.error(error);
+        return { result: "Failed" };
     }
 }
