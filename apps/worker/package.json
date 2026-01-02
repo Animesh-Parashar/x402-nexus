@@ -2,28 +2,35 @@
   "name": "worker",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "start:facilitator": "tsx src/facilitator.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
+    "@solana/web3.js": "^1.98.4",
     "@x402/evm": "^2.1.0",
-    "axios": "^1.13.2",
+    "@x402/svm": "^2.1.0",
+    "axios": "^1.7.9",
+    "bs58": "^6.0.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "ethers": "^6.16.0",
-    "express": "^5.2.1",
-    "openai": "^6.15.0"
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.4",
+    "express": "^4.21.2",
+    "openai": "^4.76.0"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.0.3",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }
