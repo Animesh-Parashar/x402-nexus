@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://via.placeholder.com/1200x600?text=Nexus+Operating+System" alt="Nexus Protocol Banner" width="100%" />
+  <!-- <img src="https://via.placeholder.com/1200x600?text=Nexus+Operating+System" alt="Nexus Protocol Banner" width="100%" /> -->
 
   <h1>⚡️ Nexus Protocol</h1>
   <h3>The Operating System for Agentic Commerce.</h3>
