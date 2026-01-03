@@ -1,6 +1,4 @@
 <div align="center">
-  <!-- <img src="https://via.placeholder.com/1200x300/1a1a2e/00d4ff?text=Nexus+Protocol" alt="Nexus Protocol Banner" width="100%" /> -->
-
   <h1>⚡️ Nexus Protocol</h1>
   <h3>The Operating System for Agentic Commerce</h3>
   
@@ -8,18 +6,48 @@
     <strong>Autonomous Marketplace</strong> • <strong>x402 Native</strong> • <strong>Zero-Friction Settlement</strong>
   </p>
 
+  <p>
+    <a href="#-live-demo">Live Demo</a> •
+    <a href="#-documentation">Documentation</a> •
+    <a href="#-architecture">Architecture</a> •
+    <a href="#-quick-start">Quick Start</a> •
+    <a href="#-api-reference">API Reference</a>
+  </p>
+
+  ![Status](https://img.shields.io/badge/Status-Hackathon-success?style=for-the-badge)
   ![Network](https://img.shields.io/badge/Network-Base_Sepolia-blue?style=for-the-badge)
   ![Protocol](https://img.shields.io/badge/Protocol-x402_V2-orange?style=for-the-badge)
-  ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
   
-  [![Tests](https://img.shields.io/badge/Tests-Passing-success)](https://github.com)
-  [![Coverage](https://img.shields.io/badge/Coverage-92%25-brightgreen)](https://github.com)
+  **Built for the x402 2026 Hackathon**
 </div>
 
 ---
+
+## 🏆 Hackathon Tracks Targeted
+
+1. **Best Use of Agents**: We treat agents as economic actors with wallets, not just chatbots. Nexus is a "General Contractor" that autonomously hires sub-agents.
+2. **Internet-Native Payments (x402)**: We implement the full **HTTP 402 Payment Required** lifecycle with on-chain settlement via Base Sepolia.
+
+---
+
+## 📋 Table of Contents
+- [Overview](#-overview)
+- [Problem Statement](#-problem-statement)
+- [Solution](#-solution)
+- [Live Demo](#-live-demo)
+- [Architecture](#-architecture)
+- [System Components](#-system-components)
+- [Payment Flow](#-payment-flow)
+- [Technology Stack](#-technology-stack)
+- [Quick Start](#-quick-start)
+- [API Reference](#-api-reference)
+- [Roadmap](#-roadmap)
+
+---
+
 ## 🌐 Overview
 
-Nexus Protocol is a production-grade operating system for agentic commerce, enabling autonomous AI agents to discover, negotiate, and transact with each other without human intervention. Built on the x402 V2 protocol, Nexus transforms the internet into a true machine economy where agents act as independent economic actors.
+Nexus Protocol is an operating system for agentic commerce, enabling autonomous AI agents to discover, negotiate, and transact with each other without human intervention. Built on the x402 V2 protocol, Nexus transforms the internet into a machine economy where agents act as independent economic actors.
 
 ### Key Features
 
@@ -128,8 +156,6 @@ User Request: "Research Standard Oil history and create a PDF report"
     
 Total Cost: $0.15 | Total Time: ~8 seconds | Human Interventions: 0
 ```
-
-**[▶ Watch Live Demo](#)** | **[Try Interactive Sandbox](#)**
 
 ---
 
@@ -431,14 +457,11 @@ stateDiagram-v2
 - **Monorepo**: Turborepo
 - **Package Manager**: npm workspaces
 - **Testing**: Jest + Vitest
-- **CI/CD**: GitHub Actions
-- **Monitoring**: Grafana + Prometheus
 
 ### Protocol
 - **Core**: x402 V2 specification
 - **Settlement**: Custom facilitator
 - **Discovery**: Decentralized registry
-- **Security**: Rate limiting + signature validation
 
 ---
 
@@ -485,10 +508,6 @@ RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
 # Contract Addresses (Base Sepolia)
 USDC_ADDRESS=0x036CbD53842c5426634e7929541eC2318f3dCF7e
 FACILITATOR_ADDRESS=0x... # Your deployed facilitator
-
-# Monitoring
-ENABLE_METRICS=true
-GRAFANA_ENDPOINT=http://localhost:3100
 ```
 
 **`apps/worker/.env`:**
@@ -516,10 +535,6 @@ NEXT_PUBLIC_NETWORK=base-sepolia
 # Discovery
 NEXT_PUBLIC_REGISTRY_URL=http://localhost:5000
 NEXT_PUBLIC_WORKER_ENDPOINTS=http://localhost:3001,http://localhost:3002
-
-# UI Configuration
-NEXT_PUBLIC_ENABLE_ANIMATIONS=true
-NEXT_PUBLIC_REFRESH_INTERVAL=2000
 ```
 
 ### Running the System
@@ -602,12 +617,10 @@ Submit a task for autonomous execution.
 **Request:**
 ```json
 {
-  "task": "string",              // Task description
-  "maxBudget": "string",         // Max USDC to spend (optional)
-  "requiredCapabilities": [      // Filter workers (optional)
-    "research", "writing"
-  ],
-  "deadline": "2024-12-31T23:59:59Z"  // Optional deadline
+  "task": "string",
+  "maxBudget": "string",
+  "requiredCapabilities": ["research", "writing"],
+  "deadline": "2024-12-31T23:59:59Z"
 }
 ```
 
@@ -624,8 +637,7 @@ Submit a task for autonomous execution.
       "price": "0.10",
       "status": "pending"
     }
-  ],
-  "startedAt": "2024-03-15T10:30:00Z"
+  ]
 }
 ```
 
@@ -642,8 +654,7 @@ Check node status and pricing.
   "priceUSDC": "0.10",
   "capabilities": ["historical_research", "data_synthesis"],
   "availability": "available",
-  "queueLength": 3,
-  "avgResponseTimeMs": 4200
+  "queueLength": 3
 }
 ```
 
@@ -658,10 +669,10 @@ Content-Type: application/json
 
 {
   "message": "Payment required",
-  "amount": "100000",              // 0.10 USDC (6 decimals)
-  "asset": "0x036CbD53...",        // USDC contract
-  "recipient": "0x1234...",        // Worker wallet
-  "nonce": "abc123xyz",            // Unique nonce
+  "amount": "100000",
+  "asset": "0x036CbD53...",
+  "recipient": "0x1234...",
+  "nonce": "abc123xyz",
   "validUntil": "2024-03-15T11:00:00Z",
   "network": "base-sepolia"
 }
@@ -681,7 +692,7 @@ Execute task with payment.
     "validAfter": "0",
     "validBefore": "1710504000",
     "nonce": "abc123xyz",
-    "signature": "0x..."           // EIP-3009 signature
+    "signature": "0x..."
   }
 }
 ```
@@ -692,15 +703,13 @@ Execute task with payment.
   "taskId": "task_xyz789",
   "result": {
     "summary": "Standard Oil was...",
-    "sources": [...],
+    "sources": ["..."],
     "confidence": 0.95
   },
   "settlement": {
     "txHash": "0x789...",
-    "block": 12345678,
-    "gasUsed": "45000"
-  },
-  "completedAt": "2024-03-15T10:35:22Z"
+    "block": 12345678
+  }
 }
 ```
 
@@ -729,170 +738,87 @@ Settle a payment on-chain.
   "status": "confirmed",
   "txHash": "0x789abc...",
   "blockNumber": 12345678,
-  "gasUsed": "45000",
-  "effectiveGasPrice": "0.000000001",
-  "settledAt": "2024-03-15T10:35:20Z"
+  "gasUsed": "45000"
 }
 ```
 
 ---
 
-## 🔒 Security
+## 🔮 Future Roadmap
 
-### Cryptographic Security
+### Phase 1: Enhanced Discovery (Q2 2024)
+- **Dynamic Reputation System**: Agents rate each other after successful transactions
+- **Capability Matching**: Advanced filtering based on agent specializations
+- **Service Level Agreements**: Automated SLA enforcement and penalties
 
-```mermaid
-graph TD
-    A[Payment Request] --> B{Validate Signature}
-    B -->|Invalid| C[Reject 401]
-    B -->|Valid| D{Check Nonce}
-    D -->|Used| E[Reject - Replay]
-    D -->|Fresh| F{Verify Amount}
-    F -->|Mismatch| G[Reject - Tampering]
-    F -->|Correct| H{Check Expiry}
-    H -->|Expired| I[Reject - Timeout]
-    H -->|Valid| J[Process Payment]
-    J --> K[Mark Nonce Used]
-    K --> L[Execute Service]
-    
-    style B fill:#ff6b6b
-    style D fill:#ffd93d
-    style F fill:#6bcf7f
-    style H fill:#4d96ff
-    style J fill:#00d4ff
-```
+### Phase 2: Advanced Economics (Q3 2024)
+- **Reverse Auctions**: Executives post bounties, lowest bid worker wins
+- **Dynamic Pricing**: Real-time price adjustments based on demand/supply
+- **Staking Mechanisms**: Workers stake collateral for reputation
 
-### Security Features
+### Phase 3: Streaming Payments (Q4 2024)
+- **Pay-per-Token**: Real-time payments as LLM tokens are generated
+- **Superfluid Integration**: Continuous money streams for long-running tasks
+- **Micropayment Channels**: State channels for ultra-low latency
 
-#### 1. EIP-3009 Authorization
-- **Off-chain signatures**: No gas cost for authorization
-- **Time-bounded**: `validAfter` and `validBefore` timestamps
-- **Single-use nonces**: Prevents replay attacks
-- **Recoverable**: `ecrecover` validates signer identity
-
-#### 2. Rate Limiting
-```typescript
-// Per-IP rate limits
-const limiter = rateLimit({
-  windowMs: 60 * 1000,        // 1 minute
-  max: 100,                    // 100 requests per window
-  message: 'Too many requests'
-});
-
-// Per-wallet rate limits
-const walletLimiter = new Map();
-function checkWalletLimit(address: string): boolean {
-  const count = walletLimiter.get(address) || 0;
-  return count < 1000; // 1000 requests per hour
-}
-```
-
-#### 3. Input Validation
-- All inputs validated with Zod schemas
-- Signature format verification
-- Address checksum validation
-- Amount bounds checking (min: $0.01, max: $100)
-
-#### 4. Nonce Management
-```typescript
-class NonceRegistry {
-  private used: Set<string> = new Set();
-  
-  isUsed(nonce: string): boolean {
-    return this.used.has(nonce);
-  }
-  
-  markUsed(nonce: string): void {
-    this.used.add(nonce);
-    // Expire after 24 hours
-    setTimeout(() => this.used.delete(nonce), 86400000);
-  }
-}
-```
-
-### Audit Status
-
-| Component | Status | Date | Auditor |
-|-----------|--------|------|---------|
-| Smart Contracts | ✅ Passed | 2024-03-01 | Trail of Bits |
-| Facilitator | ✅ Passed | 2024-03-05 | OpenZeppelin |
-| Worker Nodes | ✅ Passed | 2024-03-08 | Quantstamp |
-| Executive Agent | 🔄 In Progress | - | CertiK |
-
-**[View Full Audit Reports](#)**
+### Phase 4: Cross-Chain Expansion (2025)
+- **Multi-chain Support**: Ethereum, Arbitrum, Optimism, Polygon
+- **Bridge Integration**: Automatic cross-chain settlement
+- **Universal Agent Identity**: Portable reputation across chains
 
 ---
 
-## ⚡️ Performance
+## ⚡️ Technical Highlights
 
-### Benchmarks
+### 1. The Negotiator (`negotiator.ts`)
+This is the brain of the Executive agent. It catches HTTP 402 errors and automatically signs the required cryptographic authorization.
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Payment Authorization | <100ms | 45ms | ✅ |
-| On-chain Settlement | <3s | 2.1s | ✅ |
-| End-to-end Transaction | <5s | 3.8s | ✅ |
-| Worker Discovery | <200ms | 120ms | ✅ |
-| Task Execution (Research) | <10s | 7.2s | ✅ |
-| Concurrent Tasks | 100+ | 150 | ✅ |
-
-### Load Testing Results
-
-```
-Scenario: 1000 concurrent payment requests
-├── Total Requests: 1,000
-├── Successful: 998 (99.8%)
-├── Failed: 2 (0.2% - transient network errors)
-├── Avg Response Time: 3.2s
-├── P95 Response Time: 4.8s
-├── P99 Response Time: 6.1s
-└── Throughput: 312 req/sec
-
-Gas Optimization:
-├── Single TX: ~45,000 gas ($0.02)
-├── Batched (10 TX): ~180,000 gas ($0.08)
-└── Savings: 78% vs. individual transactions
+```typescript
+// Detects Paywall
+if (error.response.status === 402) {
+    const requirements = error.response.data;
+    
+    // Autonomously Signs Permission
+    const signature = await wallet.signTypedData(
+        USDC_DOMAIN, 
+        EIP3009_TYPES, 
+        paymentMessage
+    );
+    
+    // Retries Request with Money Attached
+    return retryRequest(url, signature);
+}
 ```
 
-### Scalability Architecture
+### 2. The Worker Node (`server.ts`)
+Dynamic pricing capability. A worker can change its price instantly based on demand, effectively creating a real-time order book for compute.
 
-```mermaid
-graph TB
-    subgraph "Load Balancer Layer"
-        LB[Nginx Load Balancer]
-    end
-    
-    subgraph "Executive Cluster"
-        E1[Executive 1]
-        E2[Executive 2]
-        E3[Executive 3]
-        EN[Executive N]
-    end
-    
-    subgraph "Worker Cluster"
-        W1[Worker Pool 1<br/>Research]
-        W2[Worker Pool 2<br/>Writing]
-        W3[Worker Pool 3<br/>Compute]
-    end
-    
-    subgraph "Settlement Layer"
-        F1[Facilitator 1<br/>Primary]
-        F2[Facilitator 2<br/>Backup]
-        Cache[(Redis Cache<br/>Nonce Registry)]
-    end
-    
-    subgraph "Blockchain"
-        Base[Base Sepolia]
-    end
-    
-    LB --> E1
-    LB --> E2
-    LB --> E3
-    LB --> EN
-    
-    E1 --> W1
-    E1 --> W2
-    E2 --> W2
-    E2 --> W3
-    E3 --> W1
-    EN --> W3
+```typescript
+// Payment Guard Middleware
+const payment = await executor.verifyPayment(req.body);
+
+if (!payment.isValid) {
+    return res.status(402)
+       .set('WWW-Authenticate', `x402 network="base-sepolia"`)
+       .json(executor.createPaymentRequiredResponse());
+}
+```
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details
+
+---
+
+<div align="center">
+  <p><strong>Built for the x402 2026 Hackathon</strong></p>
+  <p><em>Automating the World's Economy, One Transaction at a Time</em></p>
+  
+  <p>
+    <a href="#-quick-start">Get Started</a> •
+    <a href="https://x402.org">x402 Protocol</a> •
+    <a href="https://base.org">Base Network</a>
+  </p>
+</div>
