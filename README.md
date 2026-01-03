@@ -557,140 +557,6 @@ Watch the logs across all terminals to see the autonomous payment flow.
 
 ---
 
-## 📚 API Reference
-
-### Executive Agent API
-
-#### `POST /api/task`
-Submit a task for autonomous execution.
-
-**Request:**
-```json
-{
-  "task": "string",
-  "maxBudget": "string",
-  "requiredCapabilities": ["research", "writing"],
-  "deadline": "2024-12-31T23:59:59Z"
-}
-```
-
-**Response:**
-```json
-{
-  "taskId": "task_abc123",
-  "status": "processing",
-  "estimatedCost": "0.15",
-  "workersHired": [
-    {
-      "nodeId": "research_node_1",
-      "service": "research",
-      "price": "0.10",
-      "status": "pending"
-    }
-  ]
-}
-```
-
-### Worker Node API
-
-#### `GET /health`
-Check node status and pricing.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "service": "research",
-  "priceUSDC": "0.10",
-  "capabilities": ["historical_research", "data_synthesis"],
-  "availability": "available",
-  "queueLength": 3
-}
-```
-
-#### `GET /process`
-Initial request (triggers 402).
-
-**Response (402 Payment Required):**
-```http
-HTTP/1.1 402 Payment Required
-WWW-Authenticate: x402 network="base-sepolia"
-Content-Type: application/json
-
-{
-  "message": "Payment required",
-  "amount": "100000",
-  "asset": "0x036CbD53...",
-  "recipient": "0x1234...",
-  "nonce": "abc123xyz",
-  "validUntil": "2024-03-15T11:00:00Z",
-  "network": "base-sepolia"
-}
-```
-
-#### `POST /process`
-Execute task with payment.
-
-**Request:**
-```json
-{
-  "task": "Research Standard Oil history",
-  "payment": {
-    "from": "0xABCD...",
-    "to": "0x1234...",
-    "amount": "100000",
-    "validAfter": "0",
-    "validBefore": "1710504000",
-    "nonce": "abc123xyz",
-    "signature": "0x..."
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "taskId": "task_xyz789",
-  "result": {
-    "summary": "Standard Oil was...",
-    "sources": ["..."],
-    "confidence": 0.95
-  },
-  "settlement": {
-    "txHash": "0x789...",
-    "block": 12345678
-  }
-}
-```
-
-### Facilitator API
-
-#### `POST /settle`
-Settle a payment on-chain.
-
-**Request:**
-```json
-{
-  "from": "0xABCD...",
-  "to": "0x1234...",
-  "amount": "100000",
-  "validAfter": "0",
-  "validBefore": "1710504000",
-  "nonce": "abc123xyz",
-  "signature": "0x...",
-  "network": "base-sepolia"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "confirmed",
-  "txHash": "0x789abc...",
-  "blockNumber": 12345678,
-  "gasUsed": "45000"
-}
-```
 
 ---
 
@@ -753,7 +619,111 @@ if (!payment.isValid) {
        .json(executor.createPaymentRequiredResponse());
 }
 ```
+Here is the polished **API Reference** section tailored exactly to the x402 Nexus implementation. It highlights the "Payment Challenge" flow which is the core differentiator of your project.
 
+**Copy and append this to your `README.md`.**
+
+---
+
+## 📡 API Reference
+
+Each **Worker Node** in the Nexus Marketplace implements the **x402 V2 Protocol**. This is a **hypermedia-driven API** where the client must handle payment negotiation autonomously.
+
+### Base URLs
+- **Researcher Node:** `http://localhost:3001`
+- **Writer Node:** `http://localhost:3002`
+
+---
+
+### 1. Execute Task (The Challenge)
+Submit a task request. If no payment proof is attached, the server will block access and return an invoice.
+
+`POST /process`
+
+**Request Body**
+```json
+{
+  "prompt": "Analyze the fall of the Roman Empire"
+}
+```
+
+**Response: `402 Payment Required`**
+This indicates you must pay before proceeding.
+- **Header:** `WWW-Authenticate: x402 version="2", network="base-sepolia"`
+- **Body (The Invoice):**
+```json
+{
+  "x402Version": 2,
+  "accepts": [
+    {
+      "network": "eip155:84532",    // Base Sepolia Chain ID
+      "amount": "100000",           // 0.10 USDC (in micro-units)
+      "asset": "0x036C...",         // USDC Smart Contract Address
+      "payTo": "0xYourWallet..."    // The Worker's Receiving Wallet
+    }
+  ],
+  "resource": {
+    "description": "Deep Research Query",
+    "mimeType": "application/json"
+  }
+}
+```
+
+---
+
+### 2. Execute Task (The Settlement)
+The Client signs the payment off-chain and resubmits the original request with the cryptographic proof.
+
+`POST /process`
+
+**Request Body (Signed)**
+```json
+{
+  "prompt": "Analyze the fall of the Roman Empire",
+  "x402Version": 2,
+  "payload": {
+      // EIP-712/3009 Payment Object
+      "authorization": {
+          "from": "0xClientAddress...",
+          "to": "0xWorkerAddress...",
+          "value": "100000",
+          "nonce": "0xUniqueRandom..."
+      },
+      "signature": "0xSig..."
+  },
+  "accepted": { 
+      // Echoing back the requirement we agreed to
+      "network": "eip155:84532",
+      "amount": "100000",
+      "asset": "0x036C..."
+  }
+}
+```
+
+**Response: `200 OK`**
+The server validates the signature, settles the transaction via the Facilitator, and performs the work.
+
+```json
+{
+  "state": "COMPLETED",
+  "message": {
+    "role": "agent",
+    "parts": [{ "kind": "text", "text": "The Roman Empire fell due to..." }]
+  },
+  "settlement": {
+    "txHash": "0x7a2...b4f",
+    "status": "confirmed"
+  }
+}
+```
+
+### Error Codes
+| Code | Meaning | Action |
+| :--- | :--- | :--- |
+| **200** | OK | Task completed. Money moved. |
+| **402** | Payment Required | Parse invoice, sign tx, and retry. |
+| **403** | Forbidden | Signature valid but payment failed on-chain (e.g., Insufficient funds). |
+| **429** | Too Many Requests | Rate limit exceeded. |
 ---
 
 ## 📄 License
