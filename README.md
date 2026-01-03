@@ -477,7 +477,7 @@ Open **four terminal windows** and run each component:
 
 **Terminal 1: Settlement Infrastructure**
 ```bash
-cd apps/wprket
+cd apps/worker
 npm run start:facilitator
 
 expected output
@@ -619,9 +619,6 @@ if (!payment.isValid) {
        .json(executor.createPaymentRequiredResponse());
 }
 ```
-Here is the polished **API Reference** section tailored exactly to the x402 Nexus implementation. It highlights the "Payment Challenge" flow which is the core differentiator of your project.
-
-**Copy and append this to your `README.md`.**
 
 ---
 
