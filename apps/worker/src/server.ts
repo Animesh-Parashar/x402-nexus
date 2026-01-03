@@ -14,7 +14,7 @@ app.use(express.json());
 const NETWORK = process.env.NETWORK || 'base-sepolia';
 const PORT = process.env.PORT || '3000';
 const WORKER_TYPE = process.env.WORKER_TYPE || 'Generic';
-const PRICE = parseFloat(process.env.PRICE || '0.10');
+const PRICE = parseFloat(process.env.PRICE || '0.001');
 
 // MOCK BYPASS: Set to "true" to skip payment checks (useful if no USDC)
 const MOCK_PAYMENT_MODE = process.env.MOCK_PAYMENT_MODE === 'true';
@@ -57,17 +57,19 @@ app.post('/process', async (req: Request, res: Response): Promise<any> => {
             console.log(`⚠️ [WARN] MOCK_PAYMENT_MODE active. Skipping validation.`);
             isValid = true;
         } else {
-            // Validate request has payment attached
-            const result = await executor.verifyPayment(req.body); // NOTE: Ensure body has correct payload wrapper
-            
-            // NOTE: The Starter Kit `MerchantExecutor.ts` often has helpers to extract payload from Req
-            // If verifyPayment expects the raw payload, we check requirements first
-            
-            // Standard Check: Does header/body exist? 
-            // The x402 pattern usually checks validation first.
-            // If validation fails (result.isValid == false), we RETURN 402.
-            
-            isValid = result.isValid;
+            // SAFEGUARD: Only verify if the body looks like an x402 payment
+            // Checks for 'payload' wrapper used in V2 or legacy structure
+            const hasPaymentData = req.body && 
+                                   (req.body.payload || req.body.authorization || req.body.signature);
+
+            if (hasPaymentData) {
+                const result = await executor.verifyPayment(req.body); 
+                isValid = result.isValid;
+                if (!isValid) console.log(`❌ Invalid Payment: ${result.invalidReason}`);
+            } else {
+                console.log(`ℹ️ No payment attached. Proceeding to negotiation phase.`);
+                isValid = false; // Triggers the 402 below
+            }
         }
 
         // --- STEP 2: HANDLE PAYWALL (402) ---

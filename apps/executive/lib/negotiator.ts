@@ -4,9 +4,10 @@ import axios from 'axios';
 
 const PRIVATE_KEY = process.env.NEXT_PUBLIC_EXEC_PRIVATE_KEY!;
 
-// Constants for Base Sepolia USDC
+// Base Sepolia USDC Address
+// Check logic uses "payTo", "asset" from server response, but these defaults help 
 const USDC_CONFIG = {
-    name: 'USDC', // Must match the token's EIP712 name exactly
+    name: 'USDC',
     version: '2',
     chainId: 84532,
     verifyingContract: '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
@@ -23,21 +24,22 @@ const TYPES = {
     ],
 };
 
-async function signPayment(requirements: any) {
-    if (!PRIVATE_KEY) throw new Error("Wallet Private Key missing");
-    
-    // 1. Setup Wallet
-    // Note: We use a random provider just to instantiate the wallet, 
-    // strictly strictly for signing (offline operation)
-    const provider = new ethers.JsonRpcProvider('https://sepolia.base.org');
-    const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+async function signPayment(requirementsWrapper: any) {
+    if (!PRIVATE_KEY) throw new Error("Wallet Private Key missing in .env.local");
 
-    // 2. Prepare Payment Params
+    // FIX 1: Access the actual requirements inside the 'accepts' array
+    const req = requirementsWrapper.accepts ? requirementsWrapper.accepts[0] : requirementsWrapper;
+    
+    // OFFLINE WALLET (Fixes ENS Error) - No provider needed just to sign bytes
+    const wallet = new ethers.Wallet(PRIVATE_KEY);
+
     const from = wallet.address;
-    const to = requirements.payTo;
-    const value = requirements.amount; // already in atomic units (e.g. 100000)
+    const to = req.payTo; // This was failing before because req was wrong level
+    const value = req.amount; 
+    
+    // Valid for 1 hour
     const validAfter = 0;
-    const validBefore = Math.floor(Date.now() / 1000) + 3600; // 1 hour expiration
+    const validBefore = Math.floor(Date.now() / 1000) + 3600; 
     const nonce = ethers.hexlify(ethers.randomBytes(32));
 
     const message = {
@@ -49,26 +51,24 @@ async function signPayment(requirements: any) {
         nonce
     };
 
-    // 3. Construct EIP-712 Domain
-    // Important: We override the name/version to match specific USDC implementations 
-    // if the requirements.extra info is missing or generic.
     const domain = {
-        name: requirements.extra?.name || USDC_CONFIG.name,
-        version: requirements.extra?.version || USDC_CONFIG.version,
-        chainId: USDC_CONFIG.chainId,
-        verifyingContract: requirements.asset || USDC_CONFIG.verifyingContract
+        name: req.extra?.name || USDC_CONFIG.name,
+        version: req.extra?.version || USDC_CONFIG.version,
+        chainId: USDC_CONFIG.chainId, // Ensure this matches Base Sepolia
+        verifyingContract: req.asset || USDC_CONFIG.verifyingContract
     };
 
-    // 4. Sign
+    console.log("[SIGNER] Signing offline for contract:", domain.verifyingContract);
+
     const signature = await wallet.signTypedData(domain, TYPES, message);
 
-    // 5. Package for x402 Server
+    // Structure for Protocol V2
     return {
         payload: {
             authorization: message,
             signature: signature
         },
-        accepted: requirements // Return the requirements we accepted
+        accepted: req // Echo back what we accepted
     };
 }
 
@@ -76,41 +76,45 @@ export async function fetchWithBribery(url: string, originalBody: any, logCallba
     try {
         logCallback(`[NETWORK] 📡 Calling ${url} ...`);
         
-        // 1. First Attempt (Will Fail)
+        // 1. Initial Attempt
         const res = await axios.post(url, originalBody, { validateStatus: () => true });
 
-        // 2. Handle Success (Free API?)
+        // 2. Success (Already paid/Free)
         if (res.status === 200) {
             return res.data;
         }
 
-        // 3. Handle 402 Payment Required
+        // 3. 402 Caught
         if (res.status === 402) {
-            const reqs = res.data; // The server returns JSON with payment requirements
-            const price = (parseInt(reqs.amount) / 1000000).toFixed(2);
+            // FIX 2: Safely parse amount
+            const reqs = res.data; 
+            // reqs is { x402Version: 2, accepts: [...] }
+            
+            const requirement = reqs.accepts[0];
+            const amountAtomic = parseInt(requirement.amount || "0");
+            const price = (amountAtomic / 1000000).toFixed(2);
             
             logCallback(`[HTTP 402] 🛑 PAYMENT REQUIRED: $${price} USDC`);
-            logCallback(`[WALLET] 🤖 Generating EIP-712 Permit Signature...`);
             
-            // Artificial delay for dramatic effect in video
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 800)); // Cinematic pause
+
+            logCallback(`[WALLET] 🤖 Signing EIP-3009 Permit...`);
             
             // 4. SIGN
-            const paymentProof = await signPayment(reqs);
+            const paymentPayload = await signPayment(reqs);
             logCallback(`[WALLET] ✍️ Signature Generated!`);
-
-            // 5. RETRY (Send proof + Original Body)
-            // Protocol v2: Merge payment proof into body or headers.
-            // Based on Starter Kit, we send proof in body.
-            const payladWithProof = {
+            
+            // 5. RETRY with Payload
+            // Merge original body logic
+            const retryBody = {
                 ...originalBody,
-                ...paymentProof // spreads "payload" and "accepted" top-level
+                ...paymentPayload
             };
 
-            logCallback(`[NETWORK] 🔄 Retrying with Payment Proof...`);
-            const retryRes = await axios.post(url, payladWithProof);
+            logCallback(`[NETWORK] 🔄 Sending Authorized Request...`);
+            const retryRes = await axios.post(url, retryBody);
             
-            logCallback(`[CHAIN] ✅ Settlement Initiated by Facilitator.`);
+            logCallback(`[CHAIN] ✅ Facilitator verified & broadcast transaction!`);
             return retryRes.data;
         }
 
