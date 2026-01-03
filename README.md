@@ -6,45 +6,14 @@
     <strong>Autonomous Marketplace</strong> • <strong>x402 Native</strong> • <strong>Zero-Friction Settlement</strong>
   </p>
 
-  <p>
-    <a href="#-live-demo">Live Demo</a> •
-    <a href="#-documentation">Documentation</a> •
-    <a href="#-architecture">Architecture</a> •
-    <a href="#-quick-start">Quick Start</a> •
-    <a href="#-api-reference">API Reference</a>
-  </p>
 
   ![Status](https://img.shields.io/badge/Status-Hackathon-success?style=for-the-badge)
   ![Network](https://img.shields.io/badge/Network-Base_Sepolia-blue?style=for-the-badge)
   ![Protocol](https://img.shields.io/badge/Protocol-x402_V2-orange?style=for-the-badge)
   
-  **Built for the x402 2026 Hackathon**
 </div>
 
 ---
-
-## 🏆 Hackathon Tracks Targeted
-
-1. **Best Use of Agents**: We treat agents as economic actors with wallets, not just chatbots. Nexus is a "General Contractor" that autonomously hires sub-agents.
-2. **Internet-Native Payments (x402)**: We implement the full **HTTP 402 Payment Required** lifecycle with on-chain settlement via Base Sepolia.
-
----
-
-## 📋 Table of Contents
-- [Overview](#-overview)
-- [Problem Statement](#-problem-statement)
-- [Solution](#-solution)
-- [Live Demo](#-live-demo)
-- [Architecture](#-architecture)
-- [System Components](#-system-components)
-- [Payment Flow](#-payment-flow)
-- [Technology Stack](#-technology-stack)
-- [Quick Start](#-quick-start)
-- [API Reference](#-api-reference)
-- [Roadmap](#-roadmap)
-
----
-
 ## 🌐 Overview
 
 Nexus Protocol is an operating system for agentic commerce, enabling autonomous AI agents to discover, negotiate, and transact with each other without human intervention. Built on the x402 V2 protocol, Nexus transforms the internet into a machine economy where agents act as independent economic actors.
@@ -278,16 +247,11 @@ The autonomous client that discovers and hires worker nodes.
 **Code Structure:**
 ```
 apps/executive/
-├── components/
-│   ├── Dashboard.tsx        # Real-time agent activity
-│   ├── TransactionLog.tsx   # Payment history
-│   └── TaskOrchestrator.tsx # Workflow UI
+├── app/
+│   ├── page.tsx        # Real-time agent activity # Payment history # Workflow UI
 ├── lib/
-│   ├── negotiator.ts        # 402 handler & signer
-│   ├── wallet.ts            # Wallet abstraction
-│   └── discovery.ts         # Service registry client
-└── pages/
-    └── index.tsx            # Main interface
+│   ├── negotiator.ts        # 402 handler & signer # Wallet abstraction # Service registry client
+
 ```
 
 ### 2. Worker Nodes (Sellers)
@@ -309,15 +273,13 @@ Specialized service providers that charge per request.
 **Code Structure:**
 ```
 apps/worker/
-├── server.ts                # Express API server
-├── middleware/
-│   ├── payment.ts           # 402 guard
-│   └── ratelimit.ts         # Abuse prevention
-├── services/
-│   ├── research.service.ts  # Research logic
-│   └── writer.service.ts    # Writing logic
-└── utils/
-    └── executor.ts          # Payment executor
+             
+├── src/
+│   ├── faciliator.ts         
+│   └── MerchantExecutor.ts
+|   └── server.ts         # Express API server
+|   └── x402Types.ts 
+
 ```
 
 ### 3. x402 Facilitator (Settlement Engine)
@@ -330,18 +292,6 @@ The infrastructure layer that settles payments on-chain.
 - Transaction status tracking
 - Nonce management
 - Fallback providers
-
-**Code Structure:**
-```
-packages/x402-facilitator/
-├── src/
-│   ├── validator.ts         # Signature validation
-│   ├── settler.ts           # Blockchain interaction
-│   ├── batch.ts             # Transaction batching
-│   └── monitoring.ts        # Health checks
-└── config/
-    └── networks.ts          # Chain configurations
-```
 
 ---
 
@@ -432,7 +382,6 @@ stateDiagram-v2
 
 ### Frontend Layer
 - **Framework**: Next.js 14 with App Router
-- **UI Library**: React 18 with TypeScript
 - **Styling**: Tailwind CSS 3.4
 - **Animations**: Framer Motion
 - **State Management**: React Context + Zustand
@@ -442,9 +391,6 @@ stateDiagram-v2
 - **Runtime**: Node.js 20 LTS
 - **Framework**: Express.js 4.18
 - **Language**: TypeScript 5.3
-- **Validation**: Zod schemas
-- **Rate Limiting**: express-rate-limit
-- **Logging**: Winston + Morgan
 
 ### Blockchain Layer
 - **Network**: Base Sepolia (L2)
@@ -485,8 +431,8 @@ npm >= 9.0.0
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourorg/nexus-protocol.git
-cd nexus-protocol
+git clone https://github.com/yourorg/x402-nexus.git
+cd x402-nexus
 
 # 2. Install dependencies (uses workspace)
 npm install
@@ -499,42 +445,30 @@ npm run build:packages
 
 Create environment files for each component:
 
-**Root `.env`:**
-```bash
-# Blockchain Configuration
-NETWORK=base-sepolia
-RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
-
-# Contract Addresses (Base Sepolia)
-USDC_ADDRESS=0x036CbD53842c5426634e7929541eC2318f3dCF7e
-FACILITATOR_ADDRESS=0x... # Your deployed facilitator
-```
-
 **`apps/worker/.env`:**
 ```bash
-# Worker Node Configuration
+# Setup
 PORT=3001
-WORKER_TYPE=research
-PRICE_USDC=0.10
+SERVICE_TYPE=researcher
+PRICE=0.10
 
-# Payment Settlement
-EVM_PRIVATE_KEY=0xYOUR_WORKER_WALLET_PRIVATE_KEY
+# Wallets
+PAY_TO_ADDRESS=
+
+# Network
+NETWORK=base-sepolia
+SETTLEMENT_MODE=facilitator
 FACILITATOR_URL=http://localhost:4022
 
-# Service Configuration
-MAX_CONCURRENT_TASKS=10
-TASK_TIMEOUT_MS=30000
+# Infrastructure (For the Facilitator Script to run later)
+FACILITATOR_PORT=4022
+EVM_PRIVATE_KEY=
+FACILITATOR_EVM_NETWORK=base-sepolia
 ```
 
 **`apps/executive/.env.local`:**
 ```bash
-# Executive Agent Configuration
-NEXT_PUBLIC_EXEC_PRIVATE_KEY=0xYOUR_EXECUTIVE_WALLET_PRIVATE_KEY
-NEXT_PUBLIC_NETWORK=base-sepolia
-
-# Discovery
-NEXT_PUBLIC_REGISTRY_URL=http://localhost:5000
-NEXT_PUBLIC_WORKER_ENDPOINTS=http://localhost:3001,http://localhost:3002
+NEXT_PUBLIC_EXEC_PRIVATE_KEY=ox[pvt_key]
 ```
 
 ### Running the System
@@ -543,38 +477,55 @@ Open **four terminal windows** and run each component:
 
 **Terminal 1: Settlement Infrastructure**
 ```bash
-cd packages/x402-facilitator
-npm run start
+cd apps/wprket
+npm run start:facilitator
 
-# Expected output:
-# ✅ x402 Facilitator initialized
-# ⛓️  Connected to Base Sepolia
-# 💰 USDC Contract: 0x036C...
-# 🚀 Listening on http://localhost:4022
+expected output
+> worker@1.0.0 start:facilitator
+> tsx src/facilitator.ts
+
+💼 EVM Facilitator account: 0x..
+🔗 Registered EVM network: eip155:84532
+
+✅ x402 Facilitator running on http://localhost:4022
+📖 Health check: http://localhost:4022/health
+🔗 Supported: http://localhost:4022/supported
+
+🌐 Enabled networks:
+   ✅ EVM: eip155:84532 (base-sepolia)
+   ❌ SVM: Not configured (set SVM_PRIVATE_KEY to enable)
 ```
 
 **Terminal 2: Research Worker Node**
 ```bash
-cd apps/worker
-PORT=3001 WORKER_TYPE=research PRICE=0.10 npm run dev
+cd apps/worker PORT=3001 SERVICE_TYPE=researcher PRICE=0.01 NETWORK=base-sepolia npm run dev
 
-# Expected output:
-# ✅ Research Node online
-# 💵 Price: $0.10 USDC per request
-# 🔐 Wallet: 0x1234...
-# 🌐 API: http://localhost:3001
+expected output
+> worker@1.0.0 dev
+> tsx watch src/server.ts
+
+
+🚀 [Generic] Service Online at port 3001
+💎 Network: base-sepolia
+💵 Price: $0.01
+✅ x402 Resource Server initialized with facilitator
+
 ```
 
 **Terminal 3: Writer Worker Node**
 ```bash
-cd apps/worker
-PORT=3002 WORKER_TYPE=writer PRICE=0.05 npm run dev
+cd apps/worker PORT=3002 WORKER_TYPE=writer PRICE=0.01 NETWORK=base-sepolia npm run dev
 
-# Expected output:
-# ✅ Writer Node online
-# 💵 Price: $0.05 USDC per request
-# 🔐 Wallet: 0x5678...
-# 🌐 API: http://localhost:3002
+expected output
+> worker@1.0.0 dev
+> tsx watch src/server.ts
+
+
+🚀 [writer] Service Online at port 3002
+💎 Network: base-sepolia
+💵 Price: $0.01
+✅ x402 Resource Server initialized with facilitator
+
 ```
 
 **Terminal 4: Executive Dashboard**
@@ -584,7 +535,6 @@ npm run dev
 
 # Expected output:
 # ✅ Executive Agent ready
-# 💰 Balance: 10.00 USDC
 # 🔍 Discovered 2 worker nodes
 # 🌐 Dashboard: http://localhost:3000
 ```
@@ -816,9 +766,4 @@ MIT License - see [LICENSE](LICENSE) for details
   <p><strong>Built for the x402 2026 Hackathon</strong></p>
   <p><em>Automating the World's Economy, One Transaction at a Time</em></p>
   
-  <p>
-    <a href="#-quick-start">Get Started</a> •
-    <a href="https://x402.org">x402 Protocol</a> •
-    <a href="https://base.org">Base Network</a>
-  </p>
 </div>
